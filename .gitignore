@@ -1,0 +1,26 @@
+# Publish only the integration and its installation instructions.
+/*
+!/.gitignore
+!/README.md
+!/custom_components/
+
+/custom_components/*
+!/custom_components/alesinx_ble/
+
+/custom_components/alesinx_ble/*
+!/custom_components/alesinx_ble/*.py
+!/custom_components/alesinx_ble/manifest.json
+!/custom_components/alesinx_ble/strings.json
+!/custom_components/alesinx_ble/translations/
+
+/custom_components/alesinx_ble/translations/*
+!/custom_components/alesinx_ble/translations/en.json
+!/custom_components/alesinx_ble/translations/ru.json
+
+# Never publish credentials, local reports, caches, or editor files.
+**/__pycache__/
+*.py[cod]
+*.local.*
+.env
+.env.*
+.DS_Store

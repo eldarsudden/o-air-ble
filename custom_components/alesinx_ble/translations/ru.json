@@ -1,0 +1,79 @@
+{
+  "title": "Alesinx O-Air BLE",
+  "config": {
+    "step": {
+      "device": {
+        "title": "Выберите открыватель",
+        "description": "Выберите открыватель и закройте Smart Life, чтобы освободить Bluetooth. Ключи будут получены автоматически, затем HA проверит BLE без движения окна. Для второго открывателя добавьте интеграцию ещё раз.",
+        "data": {
+          "device": "O-Air"
+        }
+      },
+      "manual": {
+        "title": "Ключи O-Air",
+        "description": "Вставьте содержимое credentials.mobile-qr.local.json. Ключи сохраняются локально в Home Assistant. Закройте Smart Life и разместите открыватель в зоне Bluetooth.",
+        "data": {
+          "credentials": "JSON с ключами"
+        }
+      },
+      "user": {
+        "title": "Добавление O-Air",
+        "menu_options": {
+          "qr_login": "Войти через QR Smart Life",
+          "manual": "Использовать сохранённый JSON"
+        }
+      },
+      "qr_login": {
+        "title": "Вход в Smart Life",
+        "description": "Укажите телефонный код страны и регион аккаунта Smart Life. Пароль и User Code не нужны. Интернет нужен только для получения ключей.",
+        "data": {
+          "country": "Код страны (например, 7)",
+          "region": "Регион аккаунта"
+        },
+        "data_description": {
+          "region": "eu — Европа, us — Америка, sg — Сингапур, cn — Китай, in — Индия."
+        }
+      },
+      "scan": {
+        "title": "Подтвердите вход в Smart Life",
+        "description": "Откройте сканер QR в Smart Life, отсканируйте код и подтвердите вход. Затем нажмите «Продолжить». Если код истёк, отметьте «Создать новый QR-код» и продолжите.",
+        "data": {
+          "qr": "QR для Smart Life",
+          "refresh_qr": "Создать новый QR-код"
+        },
+        "submit": "Продолжить"
+      }
+    },
+    "error": {
+      "invalid_credentials": "Нужен JSON мобильного QR-входа с полями uuid, device_id, local_key и sec_key для O-Air.",
+      "not_found": "O-Air с подходящим UUID не найден. Проверьте адаптер Bluetooth или прокси с поддержкой соединений, расстояние и закройте Smart Life.",
+      "cannot_connect": "Не удалось установить зашифрованное BLE-соединение. Проверьте ключи, расстояние и закройте Smart Life.",
+      "qr_failed": "Не удалось завершить запрос к Smart Life. Проверьте интернет, регион аккаунта и попробуйте новый QR-код.",
+      "qr_pending": "Вход ещё не подтверждён. Отсканируйте QR в Smart Life, подтвердите вход и продолжите.",
+      "qr_expired": "Срок действия QR-кода истёк. Создайте новый код.",
+      "invalid_country": "Укажите код страны цифрами, например 7.",
+      "invalid_region": "Выберите регион аккаунта Smart Life.",
+      "no_devices": "В аккаунте не найдены O-Air. Проверьте аккаунт и регион или используйте сохранённый JSON.",
+      "missing_keys": "Smart Life не вернул полную пару localKey/secKey и UUID выбранного O-Air. Повторите вход или используйте сохранённый JSON.",
+      "identity_mismatch": "Данные выбранного устройства не совпали с ответом Smart Life. Повторите вход."
+    },
+    "abort": {
+      "already_configured": "Этот O-Air уже настроен."
+    }
+  },
+  "entity": {
+    "button": {
+      "micro": {
+        "name": "Микропроветривание"
+      },
+      "ventilate": {
+        "name": "Проветривание"
+      }
+    },
+    "sensor": {
+      "last_command": {
+        "name": "Последняя подтверждённая команда"
+      }
+    }
+  }
+}

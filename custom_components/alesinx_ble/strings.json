@@ -1,0 +1,79 @@
+{
+  "title": "Alesinx O-Air BLE",
+  "config": {
+    "step": {
+      "device": {
+        "title": "Choose an opener",
+        "description": "Choose an opener and close Smart Life to release Bluetooth. Keys will be retrieved automatically, then HA tests BLE without moving the window. Add the integration again for a second opener.",
+        "data": {
+          "device": "O-Air"
+        }
+      },
+      "manual": {
+        "title": "Import O-Air credentials",
+        "description": "Paste the contents of credentials.mobile-qr.local.json. Keys are saved locally in Home Assistant. Close Smart Life and keep the opener within Bluetooth range.",
+        "data": {
+          "credentials": "Credentials JSON"
+        }
+      },
+      "user": {
+        "title": "Add O-Air",
+        "menu_options": {
+          "qr_login": "Sign in with Smart Life QR",
+          "manual": "Use a saved JSON export"
+        }
+      },
+      "qr_login": {
+        "title": "Sign in to Smart Life",
+        "description": "Enter your Smart Life account country calling code and region. No password or User Code is needed. Internet is used only to retrieve device keys.",
+        "data": {
+          "country": "Country calling code (for example, 7)",
+          "region": "Account region"
+        },
+        "data_description": {
+          "region": "eu: Europe, us: Americas, sg: Singapore, cn: China, in: India."
+        }
+      },
+      "scan": {
+        "title": "Approve Smart Life sign-in",
+        "description": "Open the QR scanner in Smart Life, scan this code, and approve sign-in. Then select Continue. To replace an expired code, select Generate a new QR code and continue.",
+        "data": {
+          "qr": "Smart Life QR code",
+          "refresh_qr": "Generate a new QR code"
+        },
+        "submit": "Continue"
+      }
+    },
+    "error": {
+      "invalid_credentials": "The JSON must contain O-Air UUID, device_id, local_key and sec_key from the mobile QR export.",
+      "not_found": "The matching O-Air was not found. Check your Bluetooth adapter or connectable proxy, range, and close Smart Life.",
+      "cannot_connect": "Could not establish an encrypted BLE session. Check the keys, range, and close Smart Life.",
+      "qr_failed": "Could not complete the Smart Life request. Check internet access and account region, then try a new QR code.",
+      "qr_pending": "Sign-in has not been approved. Scan the QR with Smart Life, approve sign-in, and continue.",
+      "qr_expired": "The QR code has expired. Generate a new code.",
+      "invalid_country": "Enter the country calling code using digits, for example 7.",
+      "invalid_region": "Select the Smart Life account region.",
+      "no_devices": "No O-Air devices were found. Check your account and region, or use a saved JSON export.",
+      "missing_keys": "Smart Life did not return a complete localKey/secKey pair and UUID for this O-Air. Sign in again or use a saved JSON export.",
+      "identity_mismatch": "The device identity did not match the Smart Life response. Sign in again."
+    },
+    "abort": {
+      "already_configured": "This O-Air is already configured."
+    }
+  },
+  "entity": {
+    "button": {
+      "micro": {
+        "name": "Micro opening"
+      },
+      "ventilate": {
+        "name": "Ventilate"
+      }
+    },
+    "sensor": {
+      "last_command": {
+        "name": "Last acknowledged command"
+      }
+    }
+  }
+}
