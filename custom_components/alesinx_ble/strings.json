@@ -46,7 +46,7 @@
     },
     "error": {
       "invalid_credentials": "The JSON must contain O-Air UUID, device_id, local_key and sec_key from the mobile QR export.",
-      "not_found": "The matching O-Air was not found. Check your Bluetooth adapter or connectable proxy, range, and close Smart Life.",
+      "not_found": "The selected O-Air was not found within range of Home Assistant. After QR approval, turn off phone Bluetooth and retry. Check TUYA_ in the Bluetooth advertisement monitor.",
       "cannot_connect": "Could not establish an encrypted BLE session. Check the keys, range, and close Smart Life.",
       "qr_failed": "Could not complete the Smart Life request. Check internet access and account region, then try a new QR code.",
       "qr_pending": "Sign-in has not been approved. Scan the QR with Smart Life, approve sign-in, and continue.",
@@ -55,7 +55,11 @@
       "invalid_region": "Select the Smart Life account region.",
       "no_devices": "No O-Air devices were found. Check your account and region, or use a saved JSON export.",
       "missing_keys": "Smart Life did not return a complete localKey/secKey pair and UUID for this O-Air. Sign in again or use a saved JSON export.",
-      "identity_mismatch": "The device identity did not match the Smart Life response. Sign in again."
+      "identity_mismatch": "The device identity did not match the Smart Life response. Sign in again.",
+      "no_bluetooth_source": "Home Assistant has no available Bluetooth scanner. Configure a local adapter or a connectable Bluetooth proxy in HA.",
+      "no_connectable_source": "Bluetooth receivers are present, but none support connections. O-Air requires a connectable adapter or proxy.",
+      "incomplete_bluetooth_data": "Tuya Bluetooth devices are visible, but their complete UUID advertisements were not received. Enable active scanning on the HA adapter, turn off phone Bluetooth, and retry.",
+      "bluetooth_scan_failed": "Bluetooth scanning could not complete. Check the Home Assistant adapter state and Bluetooth logs."
     },
     "abort": {
       "already_configured": "This O-Air is already configured."

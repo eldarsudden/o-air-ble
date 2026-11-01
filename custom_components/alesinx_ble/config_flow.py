@@ -2,12 +2,17 @@
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.components import bluetooth
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
-from .coordinator import TRANSPORT_ERRORS, connect_ble, find_device
+from .coordinator import (
+    TRANSPORT_ERRORS,
+    connect_ble,
+    discovery_error,
+    find_device,
+    wait_for_device,
+)
 from .credentials import parse_export
 from .mobile_qr import ENDPOINTS, MobileQRLogin, MobileQRLoginError
 from .transport import Credentials, OAirClient
@@ -127,10 +132,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             device = find_device(self.hass, uuid)
             if device is None:
-                await bluetooth.async_request_active_scan(self.hass, duration=10)
-                device = find_device(self.hass, uuid)
+                try:
+                    device = await wait_for_device(self.hass, uuid)
+                except TRANSPORT_ERRORS:
+                    return self._show_devices({"base": "bluetooth_scan_failed"})
             if device is None:
-                errors["base"] = "not_found"
+                errors["base"] = discovery_error(self.hass)
             else:
                 client = OAirClient(
                     Credentials(
