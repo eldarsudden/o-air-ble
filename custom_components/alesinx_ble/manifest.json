@@ -1,12 +1,12 @@
 {
   "domain": "alesinx_ble",
   "name": "Alesinx O-Air BLE",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "config_flow": true,
   "dependencies": ["bluetooth"],
   "documentation": "https://github.com/eldarsudden/o-air-ble",
   "issue_tracker": "https://github.com/eldarsudden/o-air-ble/issues",
   "iot_class": "local_polling",
   "requirements": ["pycryptodome==3.23.0", "tuya-mobile==1.2.0"],
-  "codeowners": []
+  "codeowners": ["@eldarsudden"]
 }
