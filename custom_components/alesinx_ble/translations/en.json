@@ -68,11 +68,148 @@
       },
       "ventilate": {
         "name": "Ventilate"
+      },
+      "calibrate": {
+        "name": "Calibrate"
       }
     },
     "sensor": {
       "last_command": {
         "name": "Last acknowledged command"
+      },
+      "last_control": {
+        "name": "Last reported control",
+        "state": {
+          "OPEN": "Open",
+          "VENTILATE": "Ventilate",
+          "MICRO": "Micro opening",
+          "CLOSE": "Closed",
+          "CALIBRATE": "Calibrate"
+        }
+      },
+      "opening_position": {
+        "name": "Opening position"
+      },
+      "window_action": {
+        "name": "Window state",
+        "state": {
+          "OPEN": "Open",
+          "CLOSE": "Closed",
+          "VENTILATE": "Ventilate",
+          "MICRO": "Micro opening",
+          "EXT_OPEN": "Externally opened",
+          "OPENING": "Opening",
+          "VENT_OPENING": "Opening for ventilation",
+          "MICRO_OPENING": "Opening for micro ventilation",
+          "CLOSING": "Closing"
+        }
+      },
+      "open_time_remaining": {
+        "name": "Open time remaining"
+      },
+      "time_until_next_opening": {
+        "name": "Time until next opening"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "battery": {
+        "name": "Battery"
+      },
+      "atmospheric_pressure": {
+        "name": "Atmospheric pressure"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
+      },
+      "wind_level": {
+        "name": "Wind level"
+      },
+      "last_event": {
+        "name": "Last event",
+        "state": {
+          "TEMPHI": "High temperature",
+          "TEMPLO": "Low temperature",
+          "TEMPBACK": "Temperature restored",
+          "AIRQBAD": "High TVOC",
+          "AIRQBACK": "TVOC restored",
+          "TIMEREVT": "Timer",
+          "EXTOPEN": "External opening",
+          "BATTLOW": "Low battery",
+          "WINDHI": "High wind",
+          "CLOSEFAIL": "Closing failed",
+          "CUROVLOAD": "Current overload",
+          "REBOOT": "Reboot",
+          "OPENFAIL": "Opening failed"
+        }
+      }
+    },
+    "number": {
+      "opening_limit": {
+        "name": "Opening limit"
+      },
+      "maximum_temperature": {
+        "name": "Maximum temperature"
+      },
+      "minimum_temperature": {
+        "name": "Minimum temperature"
+      },
+      "tvoc_threshold": {
+        "name": "TVOC threshold"
+      },
+      "opening_interval": {
+        "name": "Opening interval"
+      },
+      "opening_duration": {
+        "name": "Opening duration"
+      },
+      "belt_retraction_limit": {
+        "name": "Belt retraction limit"
+      },
+      "current_overload_threshold": {
+        "name": "Current overload threshold"
+      },
+      "humidity_calibration": {
+        "name": "Humidity calibration"
+      },
+      "heater_time_correction": {
+        "name": "Heater time correction"
+      }
+    },
+    "switch": {
+      "scenario": {
+        "name": "Scenario"
+      },
+      "timer": {
+        "name": "Timer"
+      },
+      "sound": {
+        "name": "Sound"
+      },
+      "tvoc_display": {
+        "name": "TVOC display"
+      }
+    },
+    "select": {
+      "scenario_action": {
+        "name": "Scenario action",
+        "state": {
+          "OPEN": "Open",
+          "CLOSE": "Closed",
+          "MICRO": "Micro opening",
+          "VENTILATE": "Ventilate"
+        }
+      }
+    },
+    "lock": {
+      "child_lock": {
+        "name": "Child lock"
       }
     }
   }

@@ -12,6 +12,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .advertisement import decode_v4
 from .const import DOMAIN, SERVICE_UUID
+from .datapoints import WRITABLE, reported_value, validate_value
 from .transport import Credentials, OAirClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,8 +62,10 @@ class OAirCoordinator(DataUpdateCoordinator):
         self._stopping = False
         self.last_command = None
         self.datapoints = {}
+        self.write_receipts = {}
+        self.write_verification = {}
 
-    async def _transaction(self, action=None):
+    async def _transaction(self, action=None, setting=None):
         async with self._lock:
             if self._stopping:
                 raise ConnectionError("O-Air is unloading")
@@ -77,25 +80,46 @@ class OAirCoordinator(DataUpdateCoordinator):
             client = OAirClient(self._credentials)
             try:
                 await client.connect(device, connector=connect_ble)
-                if action:
-                    self.datapoints.pop(119, None)
-                    self.datapoints.pop(132, None)
-                    await client.command(action)
-                    self.last_command = action
+                if action or setting is not None:
+                    identifier, value = (101, action) if action else setting
+                    targets = (132, 119) if identifier == 101 else (identifier,)
+                    for target in targets:
+                        self.datapoints.pop(target, None)
+                    if action:
+                        await client.command(action)
+                    else:
+                        await client.write_datapoint(identifier, value)
+                    self.write_receipts[identifier] = value
+                    self.write_verification[identifier] = None
+                    if identifier == 101:
+                        self.last_command = value
                     try:
+                        await asyncio.sleep(0.3)
                         self.datapoints.update(
-                            await client.read_state(identifiers=(132, 119))
+                            await client.read_state(identifiers=targets)
                         )
+                        if identifier != 101:
+                            observed = reported_value(
+                                self.datapoints, WRITABLE[identifier]
+                            )
+                            if observed is not None and observed != value:
+                                await asyncio.sleep(0.5)
+                                self.datapoints.update(
+                                    await client.read_state(identifiers=targets)
+                                )
+                                observed = reported_value(
+                                    self.datapoints, WRITABLE[identifier]
+                                )
+                            if observed is not None:
+                                self.write_verification[identifier] = observed == value
                     except TRANSPORT_ERRORS:
                         # A failed status read must not turn a confirmed move
                         # into a failed command that the caller might repeat.
                         _LOGGER.debug(
-                            "O-Air confirmed the command; position feedback is unavailable"
+                            "O-Air acknowledged the write; value feedback is unavailable"
                         )
                 else:
-                    self.datapoints.pop(119, None)
-                    self.datapoints.pop(132, None)
-                    self.datapoints.update(await client.read_state())
+                    self.datapoints = await client.read_all()
                 return dict(self.datapoints)
             finally:
                 try:
@@ -120,6 +144,34 @@ class OAirCoordinator(DataUpdateCoordinator):
                 "O-Air did not confirm the command; check the window before retrying"
             ) from error
         self.async_set_updated_data(data)
+
+    async def async_write_datapoint(self, identifier, value):
+        dp = WRITABLE.get(identifier)
+        if dp is None:
+            raise HomeAssistantError("O-Air datapoint is read-only or unsupported")
+        try:
+            validate_value(dp, value)
+        except ValueError as error:
+            raise HomeAssistantError("Invalid O-Air setting value") from error
+        observed = self.datapoints.get(identifier)
+        if observed and observed.get("type") != dp.kind:
+            raise HomeAssistantError(
+                "O-Air reported an unexpected datatype for this setting"
+            )
+        try:
+            data = await self._transaction(setting=(identifier, value))
+        except TRANSPORT_ERRORS as error:
+            self.async_set_update_error(
+                UpdateFailed("O-Air Bluetooth setting write failed")
+            )
+            raise HomeAssistantError(
+                "O-Air did not acknowledge the setting write"
+            ) from error
+        self.async_set_updated_data(data)
+        if self.write_verification.get(identifier) is False:
+            raise HomeAssistantError(
+                "O-Air acknowledged the setting but returned a different value when read back"
+            )
 
     async def async_shutdown_connection(self):
         self._stopping = True

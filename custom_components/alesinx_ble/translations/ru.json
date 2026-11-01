@@ -68,11 +68,148 @@
       },
       "ventilate": {
         "name": "Проветривание"
+      },
+      "calibrate": {
+        "name": "Калибровка"
       }
     },
     "sensor": {
       "last_command": {
         "name": "Последняя подтверждённая команда"
+      },
+      "last_control": {
+        "name": "Последняя команда устройства",
+        "state": {
+          "OPEN": "Открыто",
+          "VENTILATE": "Проветривание",
+          "MICRO": "Микропроветривание",
+          "CLOSE": "Закрыто",
+          "CALIBRATE": "Калибровка"
+        }
+      },
+      "opening_position": {
+        "name": "Положение открытия"
+      },
+      "window_action": {
+        "name": "Состояние окна",
+        "state": {
+          "OPEN": "Открыто",
+          "CLOSE": "Закрыто",
+          "VENTILATE": "Проветривание",
+          "MICRO": "Микропроветривание",
+          "EXT_OPEN": "Открыто вручную",
+          "OPENING": "Открывается",
+          "VENT_OPENING": "Открывается для проветривания",
+          "MICRO_OPENING": "Открывается для микропроветривания",
+          "CLOSING": "Закрывается"
+        }
+      },
+      "open_time_remaining": {
+        "name": "Оставшееся время открытия"
+      },
+      "time_until_next_opening": {
+        "name": "Время до следующего открытия"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "temperature": {
+        "name": "Температура"
+      },
+      "humidity": {
+        "name": "Влажность"
+      },
+      "battery": {
+        "name": "Батарея"
+      },
+      "atmospheric_pressure": {
+        "name": "Атмосферное давление"
+      },
+      "wifi_signal": {
+        "name": "Сигнал Wi-Fi"
+      },
+      "wind_level": {
+        "name": "Уровень ветра"
+      },
+      "last_event": {
+        "name": "Последнее событие",
+        "state": {
+          "TEMPHI": "Высокая температура",
+          "TEMPLO": "Низкая температура",
+          "TEMPBACK": "Температура восстановилась",
+          "AIRQBAD": "Высокий TVOC",
+          "AIRQBACK": "TVOC восстановился",
+          "TIMEREVT": "Таймер",
+          "EXTOPEN": "Ручное открытие",
+          "BATTLOW": "Низкий заряд батареи",
+          "WINDHI": "Сильный ветер",
+          "CLOSEFAIL": "Ошибка закрытия",
+          "CUROVLOAD": "Перегрузка по току",
+          "REBOOT": "Перезапуск",
+          "OPENFAIL": "Ошибка открытия"
+        }
+      }
+    },
+    "number": {
+      "opening_limit": {
+        "name": "Ограничение открытия"
+      },
+      "maximum_temperature": {
+        "name": "Верхний порог температуры"
+      },
+      "minimum_temperature": {
+        "name": "Нижний порог температуры"
+      },
+      "tvoc_threshold": {
+        "name": "Порог TVOC"
+      },
+      "opening_interval": {
+        "name": "Интервал открытия"
+      },
+      "opening_duration": {
+        "name": "Продолжительность открытия"
+      },
+      "belt_retraction_limit": {
+        "name": "Предел втягивания ремня"
+      },
+      "current_overload_threshold": {
+        "name": "Порог перегрузки по току"
+      },
+      "humidity_calibration": {
+        "name": "Коррекция влажности"
+      },
+      "heater_time_correction": {
+        "name": "Коррекция времени нагревателя"
+      }
+    },
+    "switch": {
+      "scenario": {
+        "name": "Сценарий"
+      },
+      "timer": {
+        "name": "Таймер"
+      },
+      "sound": {
+        "name": "Звук"
+      },
+      "tvoc_display": {
+        "name": "Отображение TVOC"
+      }
+    },
+    "select": {
+      "scenario_action": {
+        "name": "Действие сценария",
+        "state": {
+          "OPEN": "Открыто",
+          "CLOSE": "Закрыто",
+          "MICRO": "Микропроветривание",
+          "VENTILATE": "Проветривание"
+        }
+      }
+    },
+    "lock": {
+      "child_lock": {
+        "name": "Блокировка кнопок"
       }
     }
   }

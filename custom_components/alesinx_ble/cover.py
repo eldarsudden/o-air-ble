@@ -6,7 +6,10 @@ from homeassistant.components.cover import (
     CoverEntityFeature,
 )
 
+from .datapoints import READINGS, reported_value
 from .entity import OAirEntity
+
+ACTION_DP = next(dp for dp in READINGS if dp.id == 119)
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -23,35 +26,20 @@ class OAirCover(OAirEntity, CoverEntity):
 
     @property
     def current_cover_position(self):
-        dp = self.coordinator.datapoints.get(132, {})
-        value = dp.get("value")
-        return (
-            value
-            if dp.get("type") == 2 and isinstance(value, int) and 0 <= value <= 100
-            else None
-        )
+        # DP 132 returned zero on an actually open window. Its relationship
+        # to HA's normalized position scale has not been established.
+        # Expose it through its own sensor instead of inverting/guessing it.
+        return None
 
     @property
     def _action(self):
-        dp = self.coordinator.datapoints.get(119, {})
-        value = dp.get("value")
-        return (
-            value
-            if dp.get("type") == 3
-            and value
-            in (
-                "OPEN",
-                "CLOSE",
-                "MICRO",
-                "VENTILATE",
-                "EXT_OPEN",
-                "OPENING",
-                "VENT_OPENING",
-                "MICRO_OPENING",
-                "CLOSING",
-            )
-            else None
-        )
+        value = reported_value(self.coordinator.datapoints, ACTION_DP)
+        command = self.coordinator.last_command
+        if command == "CLOSE" and value in ("OPEN", "VENTILATE", "MICRO", "EXT_OPEN"):
+            return None
+        if command in ("OPEN", "VENTILATE", "MICRO") and value == "CLOSE":
+            return None
+        return value
 
     @property
     def assumed_state(self):
@@ -59,8 +47,6 @@ class OAirCover(OAirEntity, CoverEntity):
 
     @property
     def is_closed(self):
-        if self.current_cover_position is not None:
-            return self.current_cover_position == 0
         if self._action == "CLOSE":
             return True
         if self._action in (
@@ -87,7 +73,8 @@ class OAirCover(OAirEntity, CoverEntity):
     def extra_state_attributes(self):
         return {
             "last_command": self.coordinator.last_command,
-            "position_feedback": not self.assumed_state,
+            "state_feedback": self._action is not None,
+            "position_feedback": False,
         }
 
     async def async_open_cover(self, **kwargs):

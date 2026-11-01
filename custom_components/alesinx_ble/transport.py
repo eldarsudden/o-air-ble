@@ -17,6 +17,8 @@ from typing import Callable
 from bleak import BleakClient
 from Crypto.Cipher import AES
 
+from .datapoints import ALL_IDS, WRITABLE, validate_value
+
 WRITE_UUID = "00000001-0000-1001-8001-00805f9b07d0"
 NOTIFY_UUID = "00000002-0000-1001-8001-00805f9b07d0"
 
@@ -412,33 +414,76 @@ class OAirClient:
     async def read_state(self, report_timeout=2, identifiers=()):
         if not self.authorized:
             raise ConnectionError("O-Air session is not authorized")
+        if len(identifiers) > 1:
+            # O-Air only answers an individual DP query reliably.
+            for identifier in identifiers:
+                await self.read_state(report_timeout, (identifier,))
+            return dict(self.datapoints)
         self.phase = "reading_state"
+        for identifier in identifiers:
+            self.datapoints.pop(identifier, None)
         self._state_received.clear()
         result = await self._send(3, bytes(identifiers))
         if result != b"\0":
             raise ValueError("O-Air state request rejected")
         if report_timeout:
             try:
-                await asyncio.wait_for(self._state_received.wait(), report_timeout)
+
+                async def received():
+                    while True:
+                        await self._state_received.wait()
+                        if not identifiers or all(
+                            identifier in self.datapoints for identifier in identifiers
+                        ):
+                            return
+                        self._state_received.clear()
+
+                await asyncio.wait_for(received(), report_timeout)
             except asyncio.TimeoutError:
                 # O-Air acknowledges queries without necessarily reporting DPs.
                 pass
         self.phase = "ready"
         return dict(self.datapoints)
 
+    async def read_all(self, report_timeout=1):
+        self.datapoints.clear()
+        for identifier in ALL_IDS:
+            await self.read_state(report_timeout, (identifier,))
+        return dict(self.datapoints)
+
     async def command(self, action):
         if action not in ("OPEN", "CLOSE", "MICRO", "VENTILATE"):
             raise ValueError("Unsupported window action")
+        await self.write_datapoint(101, action)
+
+    async def write_datapoint(self, identifier, value):
+        dp = WRITABLE.get(identifier)
+        if dp is None:
+            raise ValueError("O-Air datapoint is read-only or unsupported")
+        validate_value(dp, value)
         if not self.authorized:
             raise ConnectionError("O-Air session is not authorized")
-        value = action.encode("ascii")
+        self.datapoints.pop(identifier, None)
+        if identifier == 101:
+            self.datapoints.pop(119, None)
+            self.datapoints.pop(132, None)
+        if dp.kind == 1:
+            raw = bytes([value])
+        elif dp.kind == 2:
+            raw = struct.pack(">i", value)
+        elif dp.kind == 4:
+            raw = bytes([dp.options.index(value)])
+        else:
+            raw = value.encode("utf-8")
         prefix = struct.pack(">BI", 0, self._dp_sequence)
         self._dp_sequence += 1
-        payload = prefix + bytes([101, 3]) + struct.pack(">H", len(value)) + value
+        payload = (
+            prefix + bytes([identifier, dp.kind]) + struct.pack(">H", len(raw)) + raw
+        )
         self.phase = "sending_command"
         reply = await self._send(0x27, payload)
         if len(reply) != 6 or reply[:5] != prefix or reply[5] != 0:
-            raise ValueError("O-Air did not confirm the window command")
+            raise ValueError("O-Air did not confirm the datapoint write")
         self.phase = "ready"
 
     async def close(self):
