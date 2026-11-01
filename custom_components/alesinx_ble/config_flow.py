@@ -137,7 +137,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 except TRANSPORT_ERRORS:
                     return self._show_devices({"base": "bluetooth_scan_failed"})
             if device is None:
-                errors["base"] = discovery_error(self.hass)
+                errors["base"] = discovery_error(self.hass, uuid)
             else:
                 client = OAirClient(
                     Credentials(

@@ -33,7 +33,9 @@ async def connect_ble(device, disconnected_callback):
 
 def find_device(hass, uuid):
     """Resolve the factory UUID on this host, including Bluetooth proxies."""
-    for info in bluetooth.async_discovered_service_info(hass, connectable=True):
+    # Identity may come from a receiver that cannot connect. Resolve the actual
+    # connection separately, through a connectable source for the same address.
+    for info in bluetooth.async_discovered_service_info(hass, connectable=False):
         decoded = decode_v4(
             info.service_data.get(SERVICE_UUID, b""),
             info.manufacturer_data.get(0x07D0, b""),
@@ -45,9 +47,9 @@ def find_device(hass, uuid):
             if device is not None:
                 return device
         # A stronger source can have an incomplete scan response. Check the
-        # merged advertisement from every connectable source for this address.
+        # merged advertisement from every source for this address.
         for source in bluetooth.async_scanner_devices_by_address(
-            hass, info.address, connectable=True
+            hass, info.address, connectable=False
         ):
             advertisement = source.advertisement
             decoded = decode_v4(
@@ -67,7 +69,9 @@ async def wait_for_device(hass, uuid, duration=10):
     """Observe UUID matches throughout the active scan, including replay."""
     if not bluetooth.async_scanner_count(hass, connectable=True):
         return None
-    found = asyncio.get_running_loop().create_future()
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + duration
+    found = loop.create_future()
 
     def discovered(info, change):
         if found.done():
@@ -91,14 +95,26 @@ async def wait_for_device(hass, uuid, duration=10):
     )
     try:
         await bluetooth.async_request_active_scan(hass, duration=duration)
-        return found.result() if found.done() else find_device(hass, uuid)
+        if found.done():
+            return found.result()
+        if (device := find_device(hass, uuid)) is not None:
+            return device
+        # The sweep API can return immediately when there are no AUTO scanners.
+        # ACTIVE scanners still need time to receive the next advertisement.
+        remaining = deadline - loop.time()
+        if remaining > 0:
+            try:
+                return await asyncio.wait_for(found, remaining)
+            except TimeoutError:
+                pass
+        return find_device(hass, uuid)
     finally:
         unsubscribe()
         if not found.done():
             found.cancel()
 
 
-def discovery_error(hass):
+def discovery_error(hass, uuid=None):
     """Explain an unreachable opener without logging credentials or UUIDs."""
     scanners = bluetooth.async_scanner_count(hass, connectable=False)
     connectable = bluetooth.async_scanner_count(hass, connectable=True)
@@ -108,25 +124,48 @@ def discovery_error(hass):
         for info in infos
         if SERVICE_UUID in info.service_data or SERVICE_UUID in info.service_uuids
     ]
-    complete = sum(
-        bool(
-            (
-                decode_v4(
-                    info.service_data.get(SERVICE_UUID, b""),
-                    info.manufacturer_data.get(0x07D0, b""),
-                )
-                or {}
-            ).get("device_uuid")
-        )
+    decoded = [
+        (
+            decode_v4(
+                info.service_data.get(SERVICE_UUID, b""),
+                info.manufacturer_data.get(0x07D0, b""),
+            )
+            or {}
+        ).get("device_uuid")
         for info in tuya
+    ]
+    complete = sum(bool(identifier) for identifier in decoded)
+    matches = (
+        sum(identifier == uuid for identifier in decoded)
+        if uuid is not None
+        else "not_checked"
     )
     _LOGGER.warning(
-        "O-Air discovery: scanners=%s, connectable=%s, Tuya FD50 devices=%s, decoded UUIDs=%s",
+        "O-Air discovery: scanners=%s, connectable=%s, Tuya FD50 devices=%s, "
+        "decoded UUIDs=%s, target_matches=%s",
         scanners,
         connectable,
         len(tuya),
         complete,
+        matches,
     )
+    if uuid is not None:
+        for info, identifier in zip(tuya, decoded):
+            _LOGGER.warning(
+                "O-Air advertisement: address=%s, RSSI=%s, service_bytes=%s, "
+                "manufacturer_bytes=%s, uuid_decoded=%s, target_match=%s, "
+                "connectable_history=%s",
+                info.address,
+                getattr(info, "rssi", None),
+                len(info.service_data.get(SERVICE_UUID, b"")),
+                len(info.manufacturer_data.get(0x07D0, b"")),
+                bool(identifier),
+                identifier == uuid,
+                bluetooth.async_ble_device_from_address(
+                    hass, info.address, connectable=True
+                )
+                is not None,
+            )
     if not scanners:
         return "no_bluetooth_source"
     if not connectable:
@@ -168,12 +207,16 @@ class OAirCoordinator(DataUpdateCoordinator):
     async def async_initial_refresh(self):
         """Check an authenticated query before loading entities, with a deadline."""
         self._initializing = True
-        _LOGGER.info("O-Air initialization started")
+        _LOGGER.info("O-Air initialization started (device: %s)", self.entry.title)
         try:
             async with asyncio.timeout(INITIALIZATION_TIMEOUT):
                 await self.async_config_entry_first_refresh()
         except (TimeoutError, ConfigEntryNotReady) as error:
-            _LOGGER.warning("O-Air initialization failed during %s", self.phase)
+            _LOGGER.warning(
+                "O-Air initialization failed during %s (device: %s)",
+                self.phase,
+                self.entry.title,
+            )
             raise ConfigEntryNotReady(
                 f"O-Air initialization failed during {self.phase}; "
                 "check Bluetooth range and close Smart Life"
@@ -193,7 +236,7 @@ class OAirCoordinator(DataUpdateCoordinator):
             if device is None:
                 device = await wait_for_device(self.hass, self.uuid, duration=5)
             if device is None:
-                discovery_error(self.hass)
+                discovery_error(self.hass, self.uuid)
                 raise ConnectionError(
                     "O-Air is not reachable by a connectable Bluetooth adapter"
                 )
