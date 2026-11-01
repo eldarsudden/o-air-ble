@@ -7,7 +7,7 @@ from datetime import timedelta
 from bleak.exc import BleakError
 from bleak_retry_connector import BleakClientWithServiceCache, establish_connection
 from homeassistant.components import bluetooth
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .advertisement import decode_v4
@@ -17,6 +17,7 @@ from .transport import Credentials, OAirClient
 
 _LOGGER = logging.getLogger(__name__)
 TRANSPORT_ERRORS = (BleakError, ConnectionError, OSError, TimeoutError, ValueError)
+INITIALIZATION_TIMEOUT = 45
 
 
 async def connect_ble(device, disconnected_callback):
@@ -155,11 +156,39 @@ class OAirCoordinator(DataUpdateCoordinator):
         self.datapoints = {}
         self.write_receipts = {}
         self.write_verification = {}
+        self._initializing = False
+        self._active_client = None
+        self._phase = "idle"
+
+    @property
+    def phase(self):
+        """Describe progress without exposing credentials or packet contents."""
+        return self._active_client.phase if self._active_client else self._phase
+
+    async def async_initial_refresh(self):
+        """Check an authenticated query before loading entities, with a deadline."""
+        self._initializing = True
+        _LOGGER.info("O-Air initialization started")
+        try:
+            async with asyncio.timeout(INITIALIZATION_TIMEOUT):
+                await self.async_config_entry_first_refresh()
+        except (TimeoutError, ConfigEntryNotReady) as error:
+            _LOGGER.warning("O-Air initialization failed during %s", self.phase)
+            raise ConfigEntryNotReady(
+                f"O-Air initialization failed during {self.phase}; "
+                "check Bluetooth range and close Smart Life"
+            ) from error
+        finally:
+            self._initializing = False
+        _LOGGER.info(
+            "O-Air initialization complete; full DP query will run in background"
+        )
 
     async def _transaction(self, action=None, setting=None):
         async with self._lock:
             if self._stopping:
                 raise ConnectionError("O-Air is unloading")
+            self._phase = "discovery"
             device = find_device(self.hass, self.uuid)
             if device is None:
                 device = await wait_for_device(self.hass, self.uuid, duration=5)
@@ -169,6 +198,7 @@ class OAirCoordinator(DataUpdateCoordinator):
                     "O-Air is not reachable by a connectable Bluetooth adapter"
                 )
             client = OAirClient(self._credentials)
+            self._active_client = client
             try:
                 await client.connect(device, connector=connect_ble)
                 if action or setting is not None:
@@ -209,10 +239,14 @@ class OAirCoordinator(DataUpdateCoordinator):
                         _LOGGER.debug(
                             "O-Air acknowledged the write; value feedback is unavailable"
                         )
+                elif self._initializing:
+                    self.datapoints.update(await client.read_state(report_timeout=0))
                 else:
                     self.datapoints = await client.read_all()
                 return dict(self.datapoints)
             finally:
+                self._phase = client.phase
+                self._active_client = None
                 try:
                     await client.close()
                 except TRANSPORT_ERRORS:
@@ -223,7 +257,8 @@ class OAirCoordinator(DataUpdateCoordinator):
             return await self._transaction()
         except TRANSPORT_ERRORS as error:
             raise UpdateFailed(
-                "O-Air Bluetooth query failed; close Smart Life and check range"
+                f"O-Air Bluetooth query failed during {self.phase}; "
+                "close Smart Life and check range"
             ) from error
 
     async def async_command(self, action):

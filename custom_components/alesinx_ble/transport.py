@@ -419,7 +419,7 @@ class OAirClient:
             for identifier in identifiers:
                 await self.read_state(report_timeout, (identifier,))
             return dict(self.datapoints)
-        self.phase = "reading_state"
+        self.phase = f"reading_dp_{identifiers[0]}" if identifiers else "reading_state"
         for identifier in identifiers:
             self.datapoints.pop(identifier, None)
         self._state_received.clear()
@@ -495,4 +495,4 @@ class OAirClient:
         if self.client:
             client, self.client = self.client, None
             if client.is_connected:
-                await client.disconnect()
+                await asyncio.wait_for(client.disconnect(), timeout=10)
